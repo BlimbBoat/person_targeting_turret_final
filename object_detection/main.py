@@ -10,38 +10,40 @@ model = YOLO("bestnanoreal.pt")
 
 classNames = ["person"]
 
+
+def calculate_centre_point(x1: int, y1: int, x2: int, y2: int) -> tuple[int, int]:
+    return ((x2 - x1) // 2) + x1, ((y2 - y1) // 2) + y1
+
+
 while True:
     success, img = cap.read()
     results = model(img, stream=True)
-
+    list_of_centre_points = []
     # coordinates
     for r in results:
         boxes = r.boxes
 
-        for box in boxes:
-            # bounding box
-            x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
-
-            # put box in cam
-            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-
+        for index, box in enumerate(boxes):
             # confidence
             confidence = math.ceil((box.conf[0] * 100)) / 100
             print("Confidence --->", confidence)
 
-            # class name
-            cls = int(box.cls[0])
-            print("Class name -->", classNames[cls])
+            if confidence >= 0.5:
+                # bounding box
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
 
-            # object details
-            org = [x1, y1]
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            fontScale = 1
-            color = (255, 0, 0)
-            thickness = 2
+                # calculate centre points and put them into a list
+                list_of_centre_points.append(calculate_centre_point(x1, y1, x2, y2))
 
-            cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+                # put box in cam
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+
+                # draw centre point
+                cv2.circle(img, list_of_centre_points[index], 1, (255, 0, 0), 3)
+                print("X1Y1X2Y2 --->", x1, y1, x2, y2)
+                print("Centre point --->", list_of_centre_points[index])
+
 
     cv2.imshow('Webcam', img)
     if cv2.waitKey(1) == ord('q'):
